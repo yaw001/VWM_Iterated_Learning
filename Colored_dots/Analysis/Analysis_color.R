@@ -5,9 +5,9 @@ library(magrittr)
 library(ggplot2)
 library(ggfortify)
 library(cluster)
-library(reshape)
-setwd('/Users/young/Desktop/UCSD/Research/Color-Iterated-Learning/Data/')
-load('all.data.Rdata')
+# library(reshape)
+setwd('/Users/young/Desktop/UCSD/Research/VWM_Iterated_Learning/Colored_dots/Data')
+load('all.data_color.Rdata')
 all.data<-filter(all.data,iter<=25)
 #analysis of the data 
 tb.result<-all.data%>%filter(iter<=25) %>% 
@@ -805,8 +805,14 @@ for(i in 1:100){
 }
 
 summary_rand_len = bind_rows(result_len) %>% group_by(iter_1) %>% summarise(n=n(),mean_var = mean(mean_var), se = mean(se)/sqrt(n))
-summary_original_len = tb.result_original %>% group_by(seed_1,chain_1,iter_1) %>% summarise(var.len = var(len)) %>% group_by(iter_1) %>%
+summary_original_len = tb.result_original %>% group_by(seed_1,chain_1,iter_1) %>% summarise(var.len = var(len)) %>% group_by(iter_1,seed_1) %>%
   summarise(n=n(),mean_var = mean(var.len), se = sd(var.len)/sqrt(n))
+#random_slope 
+library("nlme")
+original_var = tb.result_original %>% group_by(seed_1,chain_1,iter_1) %>% summarise(var.len = var(len))
+m_intercept <- lmer(var.len~iter_1+(1|seed_1),data=tb.result_original)
+summary_original_len %>% ggplot(aes(as.factor(iter_1),mean_var,col=as.factor(seed_1)))+ geom_point(size= 2,alpha=0.5)+geom_smooth(method="lm",se=F,aes(group=seed_1),size=0.5)+theme_minimal()+
+  geom_smooth(method="lm",aes(group=1))
 combined_result = bind_rows(summary_rand_len,summary_original_len)
 
 Type = c(rep("Randomized",26),rep("Observed",26))

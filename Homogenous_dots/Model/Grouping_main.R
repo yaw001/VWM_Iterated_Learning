@@ -1,11 +1,3 @@
-rm(list=ls())
-
-setwd('/Users/young/Desktop/UCSD/Research/Color-Iterated-Learning/Paper submission/Model')
-
-source('helper2.R')
-source('model.R')
-source('dpmm_with_gibbs.R')
-
 library('mvtnorm')
 library('LaplacesDemon')
 library('MCMCpack')
@@ -15,33 +7,36 @@ library('abind')
 library('circular')
 library("plotly")
 
+rm(list=ls())
 
-all.data <- read.csv('dots_perc.csv')
-names(all.data)
-all.data <- all.data %>% select(Seed,Chain,Iter,dots,x,y)
-save(all.data,file = 'all.data.Rdata')
-
+setwd('/Users/young/Desktop/UCSD/Research/VWM_Iterated_Learning/Homogenous_dots/Data')
 load('all.data.Rdata')
 all.data
 
+setwd('/Users/young/Desktop/UCSD/Research/VWM_Iterated_Learning/Homogenous_dots/Model')
+
+source('helper2.R')
+source('model_2.R')
+source('dpmm_with_gibbs.R')
+
+setwd('/Users/young/Desktop/UCSD/Research/VWM_Iterated_Learning/Homogenous_dots/Model/Inferred_cluster')
 
 
-setwd('/Users/young/Desktop/UCSD/Research/Color-Iterated-Learning/Paper submission/Inferred_groups')
 for(seeds in 1){
-  for(chains in 3){
-    chaindata <- filter(data, Seed == seeds, Chain == chains)
+  for(chains in 1:10){
+    chaindata <- filter(all.data, Seed == seeds, Chain == chains)
+    priors = list('mu_0' = c(0,0),
+                  'lambda' = 0.1,
+                  'nu' = 5,
+                  'S' = diag(diag(var(test_data))),
+                  'crpalpha' = alpha)
     get.CRP.results(chaindata,
-                    priors,
                     max.iter=1000)
   }
 }  
 
-alpha = 0.5
-priors = list('mu_0' = c(0,0),
-              'lambda' = 0.1,
-              'nu' = 5,
-              'S' = diag(2)*20000,
-              'crpalpha' = alpha)
+
+
 
 assignment.iter = c()
 for(seeds in 1){

@@ -96,7 +96,7 @@ CRP.gibbs <- function(dots,c.init, priors, max.iter) {
 assignment <- function(assignment_sample_matrix) {
   n = ncol(assignment_sample_matrix)
   assign_z = rep(NA, n)
-  # assignment_sample_matrix = assignment_sample_matrix[-(1:100),]
+  assignment_sample_matrix = assignment_sample_matrix[-(1:50),]
   for(i in 1:n){
     assign_z[i] = unname(which.max(table(assignment_sample_matrix[,i])))
   }

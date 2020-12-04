@@ -42,32 +42,46 @@ logl_gaussian_cluster <- function(dots,newdot,priors) {
                                 PPD.param[['df']], 
                                 log = T))
 }
-#ll for new cluster
+# #ll for new cluster
+# logl_new_cluster <- function(dot, priors) {
+#   PPD.param <-  getPPD.param(priors[['mu_0']],
+#                              priors[['S']],
+#                              priors[['lambda']],
+#                              priors[['nu']])
+#   return(log(priors[['crpalpha']]) + dmvt(as.matrix(dot),
+#        PPD.param[['mu']],
+#        PPD.param[['cov']],
+#        PPD.param[['df']],
+#        log = T))
+#   # return(log(priors[['crpalpha']]) + dnorminvwishart(mu = as.matrix(dot),
+#   #                                                    mu0 =priors[['mu_0']],
+#   #                                                    lambda = priors[['lambda']],
+#   #                                                    Sigma = priors[['sigma_0']] + priors[['dot.cov']],
+#   #                                                    priors[['S']],
+#   #                                                    priors[['nu']], log = T))
+# }
+
 logl_new_cluster <- function(dot, priors) {
-  PPD.param <-  getPPD.param(priors[['mu_0']],
-                             priors[['S']],
-                             priors[['lambda']], 
-                             priors[['nu']])
-  return(log(priors[['crpalpha']]) + dmvt(as.matrix(dot), 
-       PPD.param[['mu']],
-       PPD.param[['cov']], 
-       PPD.param[['df']], 
-       log = T))
-  # return(log(priors[['crpalpha']]) + dnorminvwishart(mu = as.matrix(dot),
-  #                                                    mu0 =priors[['mu_0']],
-  #                                                    lambda = priors[['lambda']],
-  #                                                    Sigma = priors[['sigma_0']] + priors[['dot.cov']],
-  #                                                    priors[['S']],
-  #                                                    priors[['nu']], log = T))
+  return(log(priors[['crpalpha']]) + dmvnorm(as.matrix(dot),
+                                             priors[['mu_0']],
+                                             priors[['S']],
+                                             log = T))
 }
 
 cacheFilename = function(seed, chain, iter, idstring){
   return(sprintf('%s.result.seed-%d.chain-%d.iter-%d.RData', idstring, seed, chain, iter))
 }
 
-get.CRP.results<-function(chaindata, priors, max.iter=1000){
+get.CRP.results<-function(chaindata, priors, max.iter){
+  result = list()
   for(i in 1:20){  
     dots=filter(chaindata,Iter==i) %>% select(x=x,y=y)
+    alpha = 0.5
+    priors = list('mu_0' = c(0,0),
+                  'lambda' = 0.1,
+                  'nu' = 5,
+                  'S' = diag(diag(var(dots))),
+                  'crpalpha' = alpha)
     c.init = sample(1,15,replace = T)
     result.CRP<-CRP.gibbs(dots, c.init, priors, max.iter)
     a = assignment(result.CRP[['assignment']])
