@@ -1,6 +1,12 @@
+setwd('/Users/young/Desktop/UCSD/Research/VWM_Iterated_Learning/Homogenous_dots/Model')
+
 source('helper2.R')
-source('model.R')
+source('model_2.R')
 source('dpmm_with_gibbs.R')
+
+setwd('/Users/young/Desktop/UCSD/Research/VWM_Iterated_Learning/Homogenous_dots/Data')
+load('all.data.Rdata')
+all.data
 
 library('mvtnorm')
 library('LaplacesDemon')
@@ -43,18 +49,19 @@ test_data = rbind(clus1,clus2,clus3)
 plot(test_data)
 test_data = data.frame(x=test_data[,1],y=test_data[,2])
 
-alpha = 1
-priors = list('mu_0' = c(0,0),
-              # 'sigma_0' = diag(2)*3^2,
-              # 'line_min_count' = 4,
-              #measurement error
-              'dot.cov' = diag(2),
-              'lambda' = 0.5,
-              'nu' = 2,
-              'S' = diag(2),
-              'crpalpha' = alpha)
 
-c.init = sample(1,15,replace = T)
+test_data = all.data %>% filter(Seed == 1, Chain == 3, Iter==7) %>% select(x=x,y=y)
+plot(test_data)
+alpha = 0.5
+priors = list('mu_0' = c(0,0),
+              'lambda' = 0.1,
+              'nu' = 10,
+              # 'S' = diag(diag(var(test_data))),
+              'S' = diag(diag(var(test_data)))/2,
+              'crpalpha' = alpha)
+c.init = sample(1:4,15,replace = T)
+c.init = rep(1,15)
+
 results = CRP.gibbs(test_data,c.init, priors, max.iter=1000)
 a=assignment(results[['assignment']])
 test_data_a = cbind(test_data,a)
@@ -65,4 +72,13 @@ test_data_a %>%
 
 Gaussian_param <- mean_cov_estimate(test_data,a,priors)
 
-
+seeds=1;chains=3;iter=8
+group.filename=cacheFilename(seeds, chains, iter, idstring='Inferred_clusters')
+setwd('/Users/young/Desktop/UCSD/Research/VWM_Iterated_Learning/Homogenous_dots/Model/Inferred_cluster')
+load(group.filename)
+a=result$assignment
+test_data_a = cbind(test_data,a)
+test_data_a %>%
+  ggplot(aes(x = x, y = y, color=LETTERS[a]))+
+  geom_point()+
+  theme_minimal()

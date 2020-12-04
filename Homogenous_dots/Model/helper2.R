@@ -72,7 +72,7 @@ cacheFilename = function(seed, chain, iter, idstring){
   return(sprintf('%s.result.seed-%d.chain-%d.iter-%d.RData', idstring, seed, chain, iter))
 }
 
-get.CRP.results<-function(chaindata, priors, max.iter){
+get.CRP.results<-function(chaindata, max.iter){
   result = list()
   for(i in 1:20){  
     dots=filter(chaindata,Iter==i) %>% select(x=x,y=y)
