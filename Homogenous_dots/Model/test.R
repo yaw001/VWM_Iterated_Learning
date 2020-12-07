@@ -50,16 +50,20 @@ plot(test_data)
 test_data = data.frame(x=test_data[,1],y=test_data[,2])
 
 
-test_data = all.data %>% filter(Seed == 1, Chain == 3, Iter==7) %>% select(x=x,y=y)
+test_data = all.data %>% filter(Seed == 1, Chain == 3, Iter==16) %>% select(x=x,y=y)
+test_data = all.data %>% filter(Seed == 1, Chain == 2, Iter==11) %>% select(x=x,y=y)
+
 plot(test_data)
 alpha = 0.5
 priors = list('mu_0' = c(0,0),
+              # 'mu_0' = c(mean(test_data$x),mean(test_data$y)),
               'lambda' = 0.1,
-              'nu' = 10,
+              'nu' = 3,
+              # 'S' = diag(2),
               # 'S' = diag(diag(var(test_data))),
               'S' = diag(diag(var(test_data)))/2,
               'crpalpha' = alpha)
-c.init = sample(1:4,15,replace = T)
+
 c.init = rep(1,15)
 
 results = CRP.gibbs(test_data,c.init, priors, max.iter=1000)
@@ -70,11 +74,15 @@ test_data_a %>%
   geom_point()+
   theme_minimal()
 
+
 Gaussian_param <- mean_cov_estimate(test_data,a,priors)
 
-seeds=1;chains=3;iter=8
+
+test_data = all.data %>% filter(Seed == 1, Chain == 2, Iter==11) %>% select(x=x,y=y)
+plot(test_data)
+seeds=1;chains=3;iter=11
 group.filename=cacheFilename(seeds, chains, iter, idstring='Inferred_clusters')
-setwd('/Users/young/Desktop/UCSD/Research/VWM_Iterated_Learning/Homogenous_dots/Model/Inferred_cluster')
+setwd('/Users/young/Desktop/UCSD/Research/VWM_Iterated_Learning/Homogenous_dots/Results/Inferred_cluster')
 load(group.filename)
 a=result$assignment
 test_data_a = cbind(test_data,a)

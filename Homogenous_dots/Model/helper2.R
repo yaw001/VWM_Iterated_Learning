@@ -17,31 +17,52 @@ ConditionalPosterior <- function(dots, priors) {
 
 #get the parameters of the Predictive posterior for clusters
 #PPD is t distribution for MVN clusters
+# getPPD.param <- function(posterior.mu, posterior.S, posterior.lambda, posterior.nu){
+#   PPD.param = list()
+#   PPD.param[['mu']] = posterior.mu
+#   PPD.param[['cov']] = (posterior.lambda + 1)/(posterior.lambda * (posterior.nu - 2 + 1)) * posterior.S
+#   PPD.param[['df']] = posterior.nu - 2 + 1
+#   return(PPD.param)
+# }
+
 getPPD.param <- function(posterior.mu, posterior.S, posterior.lambda, posterior.nu){
   PPD.param = list()
-  PPD.param[['mu']] = posterior.mu
-  PPD.param[['cov']] = (posterior.lambda + 1)/(posterior.lambda * (posterior.nu - 2 + 1)) * posterior.S
-  PPD.param[['df']] = posterior.nu - 2 + 1
+  PPD.param[['cov']] = rinvwishart(posterior.nu,posterior.S)
+  PPD.param[['mu']] = rmvnorm(1,posterior.mu, PPD.param[['cov']]/posterior.lambda)
   return(PPD.param)
 }
 
-#ll for existed cluster
+# #ll for existed cluster
+# logl_gaussian_cluster <- function(dots,newdot,priors) {
+#   n_k = nrow(dots)
+#   posterior.param <- ConditionalPosterior(dots, priors)
+#   PPD.param <-  getPPD.param(posterior.param[['mu']],
+#                              posterior.param[['S']],
+#                              posterior.param[['lambda']], 
+#                              posterior.param[['nu']])
+#   #Assuming groups are MVN clusters, PPD is MVT
+#   #the probability of assigning to occupied table is proportional to the 
+#   #number of people are already in the table
+#   return(log(n_k) + dmvt(as.matrix(newdot), 
+#                                 PPD.param[['mu']],
+#                                 PPD.param[['cov']], 
+#                                 PPD.param[['df']], 
+#                                 log = T))
+# }
+
 logl_gaussian_cluster <- function(dots,newdot,priors) {
   n_k = nrow(dots)
-  posterior.param <-  ConditionalPosterior(dots, priors)
+  posterior.param <- ConditionalPosterior(dots, priors)
   PPD.param <-  getPPD.param(posterior.param[['mu']],
                              posterior.param[['S']],
-                             posterior.param[['lambda']], 
+                             posterior.param[['lambda']],
                              posterior.param[['nu']])
-  #Assuming groups are MVN clusters, PPD is MVT
-  #the probability of assigning to occupied table is proportional to the 
-  #number of people are already in the table
-  return(log(n_k) + dmvt(as.matrix(newdot), 
+  return(log(n_k) + dmvnorm(as.matrix(newdot),
                                 PPD.param[['mu']],
-                                PPD.param[['cov']], 
-                                PPD.param[['df']], 
+                                PPD.param[['cov']],
                                 log = T))
 }
+
 # #ll for new cluster
 # logl_new_cluster <- function(dot, priors) {
 #   PPD.param <-  getPPD.param(priors[['mu_0']],
@@ -61,10 +82,23 @@ logl_gaussian_cluster <- function(dots,newdot,priors) {
 #   #                                                    priors[['nu']], log = T))
 # }
 
+# #ll for new cluster
+# logl_new_cluster <- function(dot, priors) {
+#   return(log(priors[['crpalpha']]) + dmvnorm(as.matrix(dot),
+#                                              priors[['mu_0']],
+#                                              priors[['S']],
+#                                              log = T))
+# }
+
+# #ll for new cluster
 logl_new_cluster <- function(dot, priors) {
+  PPD.param <-  getPPD.param(priors[['mu_0']],
+                             priors[['S']],
+                             priors[['lambda']],
+                             priors[['nu']])
   return(log(priors[['crpalpha']]) + dmvnorm(as.matrix(dot),
-                                             priors[['mu_0']],
-                                             priors[['S']],
+                                             PPD.param[['mu']],
+                                             PPD.param[['cov']],
                                              log = T))
 }
 
@@ -80,7 +114,8 @@ get.CRP.results<-function(chaindata, max.iter){
     priors = list('mu_0' = c(0,0),
                   'lambda' = 0.1,
                   'nu' = 5,
-                  'S' = diag(diag(var(dots))),
+                  # 'S' = diag(diag(var(test_data))),
+                  'S' = diag(diag(var(dots)))/2,
                   'crpalpha' = alpha)
     c.init = sample(1,15,replace = T)
     result.CRP<-CRP.gibbs(dots, c.init, priors, max.iter)

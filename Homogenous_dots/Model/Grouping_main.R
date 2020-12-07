@@ -17,10 +17,10 @@ source('helper2.R')
 source('model_2.R')
 source('dpmm_with_gibbs.R')
 
-setwd('/Users/young/Desktop/UCSD/Research/VWM_Iterated_Learning/Homogenous_dots/Model/Inferred_cluster')
+setwd('/Users/young/Desktop/UCSD/Research/VWM_Iterated_Learning/Homogenous_dots/Results/Inferred_cluster')
 
 
-for(seeds in 2:10){
+for(seeds in 1){
   for(chains in 1:10){
     chaindata <- filter(all.data, Seed == seeds, Chain == chains)
     get.CRP.results(chaindata,
@@ -34,8 +34,8 @@ for(seeds in 2:10){
 # assignment.iter = c()
 
 tb.results.group = tibble()
-for(seeds in 1:3){
-  for(chains in 1:10){
+for(seeds in 1){
+  for(chains in 1:3){
     for(iter in 1:20){
       group.filename<-cacheFilename(seeds, 
                                     chains, 
@@ -49,28 +49,39 @@ for(seeds in 1:3){
   }
 }
 
-tb.result_seed_1_to_3<-all.data%>% filter(Seed<4) %>% 
+tb.result_seed_1_3<-all.data%>% filter(Seed==1,Chain==3) %>% 
   group_by(Seed,Chain,Iter)%>% 
-  do(tibble(xy = list(data.frame(x=.$x, y=.$y)))) %>% 
+  do(tibble(xy = list(data.frame(x=.$x, y=.$y)))) %>% bind_cols(tb.results.group) %>% 
   rowwise() %>% 
   mutate(group_numbers = length(unique(unlist(assignment))))
 
 tb.result_seed_1_to_3 <- tb.result_seed_1_to_3 %>% bind_cols(tb.results.group)
 tb.result_seed_1_to_3 %>% filter(Iter == 20)
 
-assignment_1_3 = tb.result_seed_1_to_3 %>% filter(Seed == 1, Chain ==3) %>% pull(assignment)
+assignment_1_3 = tb.result_seed_1_3 %>% pull(assignment) %>% unlist()
 Seed_1_chain_3 = all.data %>% filter(Seed == 1, Chain == 3) %>% cbind(assignment = as.factor(unlist(assignment_1_3)))
 
-Seed_1_chain_3_iter_20 = all.data %>% filter(Seed == 1, Chain == 3, Iter==20) %>% select(x=x,y=y)
-results = CRP.gibbs(Seed_1_chain_3_iter_20,c.init, priors, max.iter=1000)
-a=assignment(results[['assignment']])
-
-a
-
 p <- Seed_1_chain_3 %>% group_by(Iter) %>% 
-  ggplot(aes(x=x, y=y,color=assignment.iter, frame=Iter))+
+  ggplot(aes(x=x, y=y, color=assignment),frame=Iter)+
+  # facet_grid(Iter~)+
+  # scale_color_gradient(low="blue", high="red")+
+  geom_point(size=1)+
+  theme_bw()+
+  # coord_cartesian(xlim=c(-1,1), ylim=c(-1,1))+
+  theme(axis.text = element_blank(),
+        panel.grid = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        strip.text = element_blank(),
+        legend.position = 'none')
+
+ggplotly(p)
+
+Seed_1_chain_3_iter_20 = all.data %>% filter(Seed == 1, Chain == 3, Iter==20) %>% select(x=x,y=y)
+p <- all.data %>% filter(Seed == 1, Chain == 3) %>% group_by(Iter) %>% 
+  ggplot(aes(x=x, y=y, frame=Iter))+
   # facet_grid(Chain~Seed)+
-  scale_color_gradient(low="blue", high="red")+
+  # scale_color_gradient(low="blue", high="red")+
   geom_point(size=1)+
   theme_bw()+
   # coord_cartesian(xlim=c(-1,1), ylim=c(-1,1))+
