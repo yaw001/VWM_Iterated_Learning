@@ -35,7 +35,7 @@ for(seeds in 1){
 
 tb.results.group = tibble()
 for(seeds in 1){
-  for(chains in 1:3){
+  for(chains in 3){
     for(iter in 1:20){
       group.filename<-cacheFilename(seeds, 
                                     chains, 
@@ -55,14 +55,25 @@ tb.result_seed_1_3<-all.data%>% filter(Seed==1,Chain==3) %>%
   rowwise() %>% 
   mutate(group_numbers = length(unique(unlist(assignment))))
 
-tb.result_seed_1_to_3 <- tb.result_seed_1_to_3 %>% bind_cols(tb.results.group)
-tb.result_seed_1_to_3 %>% filter(Iter == 20)
+assign_1_3=tb.result_seed_1_3$assignment %>% unlist()
+p<-all.data%>% filter(Seed==1,Chain==3) %>% cbind(as.factor(assign_1_3)) %>% 
+  ggplot(aes(x=x, y=y, color=assign_1_3,frame=as.factor(Iter)))+
+  # facet_grid(Iter~)+
+  scale_color_gradient(low="blue", high="red")+
+  geom_point(size=1)+
+  theme_bw()+
+  # coord_cartesian(xlim=c(-1,1), ylim=c(-1,1))+
+  theme(axis.text = element_blank(),
+        panel.grid = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        strip.text = element_blank(),
+        legend.position = 'none')
 
-assignment_1_3 = tb.result_seed_1_3 %>% pull(assignment) %>% unlist()
-Seed_1_chain_3 = all.data %>% filter(Seed == 1, Chain == 3) %>% cbind(assignment = as.factor(unlist(assignment_1_3)))
+ggplotly(p)
 
 p <- Seed_1_chain_3 %>% group_by(Iter) %>% 
-  ggplot(aes(x=x, y=y, color=assignment),frame=Iter)+
+  ggplot(aes(x=x, y=y, color=assignment,frame=Iter))+
   # facet_grid(Iter~)+
   # scale_color_gradient(low="blue", high="red")+
   geom_point(size=1)+

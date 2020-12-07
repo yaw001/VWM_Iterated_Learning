@@ -17,39 +17,22 @@ ConditionalPosterior <- function(dots, priors) {
 
 #get the parameters of the Predictive posterior for clusters
 #PPD is t distribution for MVN clusters
-# getPPD.param <- function(posterior.mu, posterior.S, posterior.lambda, posterior.nu){
-#   PPD.param = list()
-#   PPD.param[['mu']] = posterior.mu
-#   PPD.param[['cov']] = (posterior.lambda + 1)/(posterior.lambda * (posterior.nu - 2 + 1)) * posterior.S
-#   PPD.param[['df']] = posterior.nu - 2 + 1
-#   return(PPD.param)
-# }
-
 getPPD.param <- function(posterior.mu, posterior.S, posterior.lambda, posterior.nu){
   PPD.param = list()
-  PPD.param[['cov']] = rinvwishart(posterior.nu,posterior.S)
-  PPD.param[['mu']] = rmvnorm(1,posterior.mu, PPD.param[['cov']]/posterior.lambda)
+  PPD.param[['mu']] = posterior.mu
+  PPD.param[['cov']] = (posterior.lambda + 1)/(posterior.lambda * (posterior.nu - 2 + 1)) * posterior.S
+  PPD.param[['df']] = posterior.nu - 2 + 1
   return(PPD.param)
 }
 
-# #ll for existed cluster
-# logl_gaussian_cluster <- function(dots,newdot,priors) {
-#   n_k = nrow(dots)
-#   posterior.param <- ConditionalPosterior(dots, priors)
-#   PPD.param <-  getPPD.param(posterior.param[['mu']],
-#                              posterior.param[['S']],
-#                              posterior.param[['lambda']], 
-#                              posterior.param[['nu']])
-#   #Assuming groups are MVN clusters, PPD is MVT
-#   #the probability of assigning to occupied table is proportional to the 
-#   #number of people are already in the table
-#   return(log(n_k) + dmvt(as.matrix(newdot), 
-#                                 PPD.param[['mu']],
-#                                 PPD.param[['cov']], 
-#                                 PPD.param[['df']], 
-#                                 log = T))
+# getPPD.param <- function(posterior.mu, posterior.S, posterior.lambda, posterior.nu){
+#   PPD.param = list()
+#   PPD.param[['cov']] = rinvwishart(posterior.nu,posterior.S)
+#   PPD.param[['mu']] = rmvnorm(1,posterior.mu, PPD.param[['cov']]/posterior.lambda)
+#   return(PPD.param)
 # }
 
+#ll for existed cluster
 logl_gaussian_cluster <- function(dots,newdot,priors) {
   n_k = nrow(dots)
   posterior.param <- ConditionalPosterior(dots, priors)
@@ -57,11 +40,28 @@ logl_gaussian_cluster <- function(dots,newdot,priors) {
                              posterior.param[['S']],
                              posterior.param[['lambda']],
                              posterior.param[['nu']])
-  return(log(n_k) + dmvnorm(as.matrix(newdot),
+  #Assuming groups are MVN clusters, PPD is MVT
+  #the probability of assigning to occupied table is proportional to the
+  #number of people are already in the table
+  return(log(n_k) + dmvt(as.matrix(newdot),
                                 PPD.param[['mu']],
                                 PPD.param[['cov']],
+                                PPD.param[['df']],
                                 log = T))
 }
+
+# logl_gaussian_cluster <- function(dots,newdot,priors) {
+#   n_k = nrow(dots)
+#   posterior.param <- ConditionalPosterior(dots, priors)
+#   PPD.param <-  getPPD.param(posterior.param[['mu']],
+#                              posterior.param[['S']],
+#                              posterior.param[['lambda']],
+#                              posterior.param[['nu']])
+#   return(log(n_k) + dmvnorm(as.matrix(newdot),
+#                                 PPD.param[['mu']],
+#                                 PPD.param[['cov']],
+#                                 log = T))
+# }
 
 # #ll for new cluster
 # logl_new_cluster <- function(dot, priors) {
@@ -82,25 +82,25 @@ logl_gaussian_cluster <- function(dots,newdot,priors) {
 #   #                                                    priors[['nu']], log = T))
 # }
 
-# #ll for new cluster
-# logl_new_cluster <- function(dot, priors) {
-#   return(log(priors[['crpalpha']]) + dmvnorm(as.matrix(dot),
-#                                              priors[['mu_0']],
-#                                              priors[['S']],
-#                                              log = T))
-# }
-
-# #ll for new cluster
+#ll for new cluster
 logl_new_cluster <- function(dot, priors) {
-  PPD.param <-  getPPD.param(priors[['mu_0']],
-                             priors[['S']],
-                             priors[['lambda']],
-                             priors[['nu']])
   return(log(priors[['crpalpha']]) + dmvnorm(as.matrix(dot),
-                                             PPD.param[['mu']],
-                                             PPD.param[['cov']],
+                                             priors[['mu_0']],
+                                             priors[['S']],
                                              log = T))
 }
+
+# #ll for new cluster
+# logl_new_cluster <- function(dot, priors) {
+#   PPD.param <-  getPPD.param(priors[['mu_0']],
+#                              priors[['S']],
+#                              priors[['lambda']],
+#                              priors[['nu']])
+#   return(log(priors[['crpalpha']]) + dmvnorm(as.matrix(dot),
+#                                              PPD.param[['mu']],
+#                                              PPD.param[['cov']],
+#                                              log = T))
+# }
 
 cacheFilename = function(seed, chain, iter, idstring){
   return(sprintf('%s.result.seed-%d.chain-%d.iter-%d.RData', idstring, seed, chain, iter))
