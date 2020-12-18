@@ -78,9 +78,9 @@ test_data_a %>%
 Gaussian_param <- mean_cov_estimate(test_data,a,priors)
 
 
-test_data = all.data %>% filter(Seed == 1, Chain == 2, Iter==11) %>% select(x=x,y=y)
+test_data = all.data %>% filter(Seed == 1, Chain == 3, Iter==14) %>% select(x=x,y=y)
 plot(test_data)
-seeds=1;chains=3;iter=11
+seeds=1;chains=3;iter=15
 group.filename=cacheFilename(seeds, chains, iter, idstring='Inferred_clusters')
 setwd('/Users/young/Desktop/UCSD/Research/VWM_Iterated_Learning/Homogenous_dots/Results/Inferred_cluster')
 load(group.filename)

@@ -113,138 +113,29 @@ crp_gibbs <- function(data, alpha, mu0, lambda, nu, psi, c_init, maxIter) {
   invisible(res)
 }
 
-setwd('/Users/young/Desktop/UCSD/Research/VWM_Iterated_Learning/Homogenous_dots/Data')
-load('all.data.Rdata')
-all.data
-all.data$x = all.data$x/300
-all.data$y = all.data$y/300
-
-datc = all.data %>% filter(Seed == 2, Chain == 2, Iter==20) %>% select(x=x,y=y) %>% as.matrix()
-datc = all.data %>% filter(Seed == 1, Chain == 3, Iter==17) %>% select(x=x,y=y) %>% as.matrix()
-
-plot(datc)
-
-#Prior specification
-alpha = 0.08
-mu0 <- matrix(rep(0,2),ncol=2,byrow =TRUE)
-lambda=0.02
-# lambda=0.02
-# lambda = 0.05
-nu=10
-# psi=diag(diag(var(datc)))
-psi=diag(2)*mean(diag(var(datc)))/2
-# psi=var(datc)/2
-# psi=diag(2)*0.0625
-
-c_init <- rep(1,nrow(datc))
-results <- crp_gibbs(datc,alpha=alpha,mu0=mu0, lambda=lambda, nu=nu, psi=psi, c_init=c_init, maxIter=2000)
-c_model <- apply(results[,-(1:200)], 1, FUN = function(x) { 
-  tab <- table(x)
-  ans <- names(tab[which.max(tab)]) 
-  return(ans) })
-# c_true <- rep(1:4, each = 5)
-# table(c_true, c_model)
-datc_model = data.frame(x=datc[,1],y=datc[,2],assignment = c_model)
-datc_model %>% ggplot(aes(x,y,color=assignment))+geom_point()
-
-
-# lambda=c(0.01,0.05,0.1,0.5,1)
-# nu=c(5,10,15)
-# psi=diag(diag(var(datc))/2)
-# assignment = c()
-# for(i in 1:length(lambda)){
-#   for(j in 1:length(nu)){
-#     results = crp_gibbs(datc,alpha=alpha,mu0=mu0, lambda=lambda[i], nu=nu[j], psi=psi, c_init=c_init, maxIter=2000)
-#     c_model <- apply(results, 1, FUN = function(x) { 
-#       tab <- table(x)
-#       ans <- names(tab[which.max(tab)]) 
-#       return(ans) })
-#     cat("lambda = ", lambda[i], "nu =", nu[j], "\n")
-#     print(table(c_model))
-#     assignment = c(assignment,c_model)
-#   }
-# }
-
-datc = all.data %>% filter(Seed==1,Chain==3)
-assignment = c()
-for(iter in 1:20) {
-  dat_iter=datc %>% filter(Iter==iter) %>% select(x,y) %>% as.matrix()
-  psi=diag(2)*mean(diag(var(dat_iter)))/2
-  c_init <- rep(1,nrow(dat_iter))
-  results <- crp_gibbs(dat_iter,alpha=alpha,mu0=mu0, lambda=lambda, nu=nu, psi=psi, c_init=c_init, maxIter=2000)
-  c_model_iter = apply(results[,-(1:200)], 1, FUN = function(x) { 
-    tab <- table(x)
-    ans <- names(tab[which.max(tab)]) 
-    return(ans) })
-  assignment = c(assignment,c_model_iter)
+#Estimate Cluster mean and covariance
+cluster_param <- function(dots,assignment,alpha,lambda,mu0,nu,psi){
+  mean = list()
+  cov = list()
+  len = max(assignment)
+  for(i in 1:len) {
+    n = sum(assignment==i)
+    dots_of_i = dots[assignment == i,c('x','y')]
+    y.bar = unname(colMeans(dots_of_i))
+    posterior.lambda = lambda + n
+    posterior.nu <- nu + n
+    dev.mu = as.vector(y.bar - mu0)
+    posterior.S <- psi + (lambda*n / (lambda + n)) * (dev.mu %*% t(dev.mu))
+    S.n <- unname(cov(dots_of_i))*(n)
+    posterior.S <- posterior.S + S.n
+    mean[[i]] = (lambda*mu0+ n*(y.bar))/(lambda + n)
+    #Mean of inverse-wishart psi/ (nu - p - 1), psi (p by p)
+    cov[[i]] = posterior.S / (posterior.nu - 2 - 1)
+  }
+  return(list(mean = mean,
+              cov = cov))
 }
 
-datc_model = cbind(datc,assignment=assignment)
-datc_model$Iter = as.factor(datc_model$Iter)
-datc_model$assignment = as.integer(datc_model$assignment)
-# datc_model$assignment = as.factor(datc_model$assignment
-
-setwd("/Users/young/Desktop/UCSD/Research/VWM_Iterated_Learning/Homogenous_dots/Results/Test")
-save(datc_model, file = "test_result_seed_1_chain_3.Rdata")
-library("plotly")
-# cols <- c("1" = "red", "2" = "blue", "3" = "darkgreen", "4" = "orange","5" = "purple")
-p=datc_model %>% ggplot(aes(x,y,color=assignment,frame=Iter))+geom_point()+
-  scale_color_gradient(low="blue", high="red")
-#   scale_color_manual(values=cols)
-ggplotly(p)
-
-datc_model %>%
-  plot_ly(
-    x = ~x, 
-    y = ~y, 
-    color = ~assignment, 
-    frame = ~as.factor(Iter), 
-    type = 'scatter',
-    mode = 'markers'
-  )
 
 
-#seed 1 chain 3
-assignment_1 = assignment
-assignment_2 = assignment
-assignment_3 = assignment
-assignment_4 = assignment
-# var(as.matrix(dist(datc))[lower.tri(as.matrix(dist(datc)))])
-# 
-# var_pair_dist <- function(){
-#   # x=runif(15,-1,1)
-#   # y=runif(15,-1,1)
-#   x=runif(15,min(all.data$x),max(all.data$x))
-#   y=runif(15,min(all.data$y),max(all.data$y))
-#   dat_random = data.frame(x=x,y=y)
-#   plot(dat_random)
-#   return(var(as.matrix(dist(dat_random))[lower.tri(as.matrix(dist(dat_random)))]))
-# }
-# a=var_pair_dist()
-# a
-# ran_pair_var=replicate(10000,var_pair_dist())
-# mean(ran_pair_var)
-# sd(ran_pair_var)
-# hist(ran_pair_var)
-# datc = all.data %>% filter(Seed == 1, Chain == 3, Iter==1) %>% select(x=x,y=y) %>% as.matrix()
-# var(as.matrix(dist(datc))[lower.tri(as.matrix(dist(datc)))])
 
-plot(datc)
-
-mean.det_all <- all.data%>%group_by(Seed,Chain,Iter)%>%
-  summarise(det.cov=det(cov(cbind(x,y))))%>%
-  group_by(Iter)%>%
-  summarise(N=n(),mean.det=mean(det.cov),se.mean=sd(det.cov)/sqrt(N))
-
-mean.det_all%>%ggplot(aes(x=Iter,y=mean.det))+
-  geom_point()+
-  geom_line(size=1.1)+
-  geom_errorbar(aes(ymin=mean.det-se.mean,ymax=mean.det+se.mean),width=0.5,size=1.1)+
-  labs(x = 'Iteration',
-       y = 'Covariance Determinant (Pattern spread)')+
-  theme_bw()+
-  theme(text = element_text(family='Times New Roman', size= 16, face='bold'),
-        panel.grid = element_blank(),
-        plot.title = element_text(hjust=0.5),
-        legend.position = 'none',
-        axis.title = element_blank())
